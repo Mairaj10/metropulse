@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local secrets
+.env
+
+# macOS
+.DS_Store
+
+# VS Code local settings
+.vscode/
+
+# Raw downloaded data
+data/raw/
+
+# dbt — used later
+target/
+dbt_packages/
+logs/
