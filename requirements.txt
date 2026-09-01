@@ -1,0 +1,5 @@
+gtfs-realtime-bindings==2.2.0
+pandas==3.0.5
+python-dotenv==1.2.3
+requests==2.34.2
+snowflake-connector-python==4.7.2
