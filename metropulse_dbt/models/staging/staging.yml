@@ -1,0 +1,135 @@
+version: 2
+
+models:
+  - name: stg_gtfs_routes
+    description: "provides information about the routes in the GTFS data for MTA"
+    columns:
+      - name: route_id
+        description: "Unique identifier for each route"
+        data_tests:
+          - not_null
+          - unique
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database"
+        data_tests:
+          - not_null
+
+  - name: stg_gtfs_stops
+    description: "provides information about the stops in the GTFS data for MTA"
+    columns:
+      - name: stop_id
+        description: "Unique identifier for each stop"
+        data_tests:
+          - not_null
+          - unique
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database"
+        data_tests:
+          - not_null
+  - name: stg_gtfs_trips
+    description: "provides information about the trips in the GTFS data for MTA"
+    columns:
+      - name: trip_id
+        description: "Unique identifier for each trip"
+        data_tests:
+          - not_null
+          - unique
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database"
+        data_tests:
+          - not_null
+      - name: route_id
+        description: "Identifier for the route associated with the trip"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_routes')
+                field: route_id
+      - name: direction_id
+        description: "Indicates the direction of travel for the trip (0 or 1)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+        
+  - name: stg_gtfs_stop_times
+    description: "provides information about the stop times in the GTFS data for MTA"
+    columns:
+      - name: trip_id
+        description: "identifies which trip this stop occurrence belongs to"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_trips')
+                field: trip_id
+      - name: stop_id
+        description: "identifies which stop this row refers to"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_stops')
+                field: stop_id
+      - name: arrival_time
+        description: "schedule time when the vehicle arrives at the stop"
+        data_tests:
+          - not_null
+      - name: departure_time
+        description: "schedule time when the vehicle departs from the stop"
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: "Order of stops in the trip"
+        data_tests:
+          - not_null
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database"
+        data_tests:
+          - not_null
+
+  - name: stg_gtfs_rt_stop_updates
+    description: "provides information about the real-time stop updates in the GTFS data for MTA"
+    columns:
+      - name: trip_id
+        description: "identifies which trip this stop update belongs to"
+        data_tests:
+          - not_null
+      - name: stop_id 
+        description: "identifies which stop this row refers to"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_stops')
+                field: stop_id
+              config:
+                where: "stop_id not in ('H19N', 'H19S')"
+              
+      - name: route_id
+        description: "identifies which route this row refers to"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_routes')
+                field: route_id
+      - name: ingested_at_utc
+        description: "when MetroPulse captured the feed"
+        data_tests:
+          - not_null
+      - name: feed_generated_at
+        description: "when MTA generated the feed"
+        data_tests:
+          - not_null
+      - name: arrival_time
+        description: "MTA realtime predicted arrival time at the stop"
+        data_tests:
+          - not_null
+      - name: departure_time
+        description: "MTA realtime predicted departure time from the stop"
+        data_tests:
+          - not_null
+        

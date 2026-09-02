@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: raw
+    database: METROPULSE
+    schema: RAW
+
+    tables:
+      - name: gtfs_routes
+        identifier: GTFS_ROUTES
+
+      - name: gtfs_trips
+        identifier: GTFS_TRIPS
+
+      - name: gtfs_stops
+        identifier: GTFS_STOPS
+
+      - name: gtfs_stop_times
+        identifier: GTFS_STOP_TIMES
+
+      - name: gtfs_rt_stop_updates
+        identifier: GTFS_RT_STOP_UPDATES
