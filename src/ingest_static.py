@@ -139,6 +139,38 @@ load_file(
     loaded_at,
 )
 
+load_file(
+    cursor,
+    "calendar.txt",
+    "GTFS_CALENDAR",
+    [
+        "service_id",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "start_date",
+        "end_date",
+    ],
+    loaded_at,
+)
+
+
+load_file(
+    cursor,
+    "calendar_dates.txt",
+    "GTFS_CALENDAR_DATES",
+    [
+        "service_id",
+        "date",
+        "exception_type",
+    ],
+    loaded_at,
+)
+
 
 connection.commit()
 

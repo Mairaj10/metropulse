@@ -132,4 +132,106 @@ models:
         description: "MTA realtime predicted departure time from the stop"
         data_tests:
           - not_null
+  - name: stg_gtfs_calendar
+    description: "provides information about the service calendar in the GTFS data for MTA"
+    columns:
+      - name: service_id
+        description: "Unique identifier for each service"
+        data_tests:
+          - not_null
+          - unique
+      - name: monday
+        description: "Indicates if the service is available on Monday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: tuesday
+        description: "Indicates if the service is available on Tuesday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: wednesday
+        description: "Indicates if the service is available on Wednesday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: thursday
+        description: "Indicates if the service is available on Thursday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: friday
+        description: "Indicates if the service is available on Friday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: saturday
+        description: "Indicates if the service is available on Saturday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: sunday
+        description: "Indicates if the service is available on Sunday (1) or not (0)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: start_date
+        description: "Date when this service schedule starts"
+        data_tests:
+          - not_null
+      - name: end_date
+        description: "Date when this service schedule ends"
+        data_tests:
+          - not_null
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database"
+        data_tests:
+          - not_null
+  - name: stg_gtfs_calendar_dates
+    description: "provides information about the service exceptions in the GTFS data for MTA"
+    columns:
+      - name: service_id
+        description: "Unique identifier for each service"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_calendar')
+                field: service_id
+      - name: exception_type
+        description: "Indicates the type of exception (1 for added service, 2 for removed service)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2]
+      - name: exception_action
+        description: "Indicates the action of the exception (1 for added service, 2 for removed service)"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['add_service', 'remove_service']
+      - name: date
+        description: "Date when this service exception applies"
+        data_tests:
+          - not_null
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database"
+        data_tests:
+          - not_null
         
