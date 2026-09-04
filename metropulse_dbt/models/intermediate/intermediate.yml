@@ -51,9 +51,6 @@ models:
         data_tests:
           - not_null
 
-      - name: start_time
-        description: "Start time reported for the realtime trip."
-
       - name: route_id
         description: "Route the realtime trip belongs to."
         data_tests:
@@ -80,9 +77,6 @@ models:
         description: "Service date the realtime trip belongs to."
         data_tests:
           - not_null
-
-      - name: realtime_trip_start_time
-        description: "Start time reported for the realtime trip."
 
       - name: route_id
         description: "Route associated with the trip."

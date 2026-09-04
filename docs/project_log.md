@@ -114,3 +114,40 @@ The grain is:
 The grain test passed.
 
 I’m keeping delay calculations for the mart layer.
+
+---
+## First marts
+
+Built the first fact table, `fct_stop_predictions`, and dimensions for stops, routes, and trips.
+
+The fact keeps the same grain as the prediction comparison model:
+
+`realtime_trip_id + stop_id + ingested_at_utc`
+
+This is where I added the first actual metric, `predicted_delay_seconds`.
+
+The marts ended up being much simpler than the intermediate models because most of the messy joining and matching had already been handled earlier.
+
+I also used a table materialization for the fact instead of the default view and added relationship tests between the fact and dimensions.
+
+---
+
+## Making the fact incremental
+
+Changed `fct_stop_predictions` to an incremental model.
+
+I’m using `ingested_at_utc` to figure out what’s new, but I also look back one hour in case some rows arrive late.
+
+The merge key is:
+
+`realtime_trip_id + stop_id + ingested_at_utc`
+
+While testing it, I got a duplicate-row merge error.
+
+The issue was actually coming from upstream. The same realtime trip was showing slightly different `start_time` values across captures, and because `start_time` was inside a `SELECT DISTINCT`, the same trip ended up appearing twice.
+
+That then doubled some prediction rows downstream.
+
+I removed `start_time` from the trip-level intermediate models, rebuilt everything downstream, and the grain tests passed again.
+
+After that, rerunning with no new data kept the fact count the same, and adding a new realtime capture increased it like expected.
