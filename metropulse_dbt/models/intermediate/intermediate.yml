@@ -1,0 +1,150 @@
+version: 2
+
+models:
+
+  - name: int_active_services_by_date
+    description: "Identifies which GTFS services are active for each realtime service date."
+
+    columns:
+      - name: service_date
+        description: "Date the realtime trip belongs to."
+        data_tests:
+          - not_null
+
+      - name: weekday_name
+        description: "Weekday name for the service date."
+        data_tests:
+          - not_null
+
+      - name: service_id
+        description: "GTFS service that is active on the service date."
+        data_tests:
+          - not_null
+
+      - name: runs_on_day
+        description: "Normal calendar rule for whether the service runs on that weekday."
+        data_tests:
+          - not_null
+
+      - name: exception_type
+        description: "Special calendar override: 1 adds service and 2 removes service. Null means no exception."
+
+      - name: is_active_service
+        description: "Final active-service flag after applying normal calendar rules and exceptions."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1]
+
+  - name: int_realtime_trips
+    description: "Collapses realtime stop-level updates into one row per realtime trip instance."
+
+    columns:
+      - name: trip_id
+        description: "Realtime trip identifier."
+        data_tests:
+          - not_null
+
+      - name: start_date
+        description: "Service date the realtime trip belongs to."
+        data_tests:
+          - not_null
+
+      - name: start_time
+        description: "Start time reported for the realtime trip."
+
+      - name: route_id
+        description: "Route the realtime trip belongs to."
+        data_tests:
+          - not_null
+
+  - name: int_realtime_trip_matches
+    description: "Matches realtime trips to their corresponding static scheduled trips using route, active service, and trip ID structure."
+
+    columns:
+      - name: realtime_trip_id
+        description: "Trip identifier from the realtime feed."
+        data_tests:
+          - not_null
+
+      - name: static_trip_id
+        description: "Matched trip identifier from the static GTFS schedule. Null when no confident match is found."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_trips')
+                field: trip_id
+
+      - name: realtime_trip_start_date
+        description: "Service date the realtime trip belongs to."
+        data_tests:
+          - not_null
+
+      - name: realtime_trip_start_time
+        description: "Start time reported for the realtime trip."
+
+      - name: route_id
+        description: "Route associated with the trip."
+        data_tests:
+          - not_null
+
+      - name: service_id
+        description: "GTFS service active on the realtime trip's service date."
+        data_tests:
+          - not_null
+
+      - name: match_status
+        description: "Indicates whether a confident static trip match was found."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['matched', 'unmatched']
+
+  - name: int_stop_prediction_comparisons
+    description: >
+      Matches realtime stop predictions to the scheduled GTFS arrival
+      for the same trip and stop.
+
+    columns:
+      - name: realtime_trip_id
+        description: "Realtime trip identifier."
+        data_tests:
+          - not_null
+
+      - name: static_trip_id
+        description: "Matching static GTFS trip identifier."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_trips')
+                field: trip_id
+
+      - name: realtime_trip_start_date
+        description: "Service date of the realtime trip."
+        data_tests:
+          - not_null
+
+      - name: stop_id
+        description: "GTFS stop identifier."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_stops')
+                field: stop_id
+
+      - name: ingested_at_utc
+        description: "Time when the realtime prediction was captured."
+        data_tests:
+          - not_null
+
+      - name: predicted_arrival_time
+        description: "Realtime predicted arrival time in UTC."
+
+      - name: scheduled_arrival_utc
+        description: "Scheduled GTFS arrival converted to UTC."
+        data_tests:
+          - not_null

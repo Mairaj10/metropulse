@@ -20,3 +20,10 @@ sources:
 
       - name: gtfs_rt_stop_updates
         identifier: GTFS_RT_STOP_UPDATES
+
+      - name: gtfs_calendar
+        identifier: GTFS_CALENDAR
+
+      - name: gtfs_calendar_dates
+        identifier: GTFS_CALENDAR_DATES
+        
