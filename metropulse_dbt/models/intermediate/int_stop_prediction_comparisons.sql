@@ -3,6 +3,7 @@ with base as (SELECT
     trip_matches.static_trip_id,
     trip_matches.realtime_trip_start_date,
     realtime_updates.stop_id,
+    trip_matches.route_id,
     realtime_updates.ingested_at_utc,
     realtime_updates.arrival_time AS predicted_arrival_time,
     try_to_number(split_part(stop_times.arrival_time, ':', 1)) AS scheduled_arrival_hour,
@@ -26,6 +27,7 @@ SELECT
     static_trip_id,
     realtime_trip_start_date,
     stop_id,
+    route_id,
     ingested_at_utc,
     predicted_arrival_time,
 
