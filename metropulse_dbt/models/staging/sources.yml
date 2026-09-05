@@ -2,24 +2,30 @@ version: 2
 
 sources:
   - name: raw
+    description: "Raw MTA static GTFS and realtime GTFS data loaded into Snowflake by MetroPulse."
     database: METROPULSE
     schema: RAW
 
     tables:
       - name: gtfs_routes
         identifier: GTFS_ROUTES
+        description: "Raw static GTFS route records from the MTA."
 
       - name: gtfs_trips
         identifier: GTFS_TRIPS
+        description: "Raw static GTFS scheduled trip records from the MTA."
 
       - name: gtfs_stops
         identifier: GTFS_STOPS
+        description: "Raw static GTFS stop and station records from the MTA."
 
       - name: gtfs_stop_times
         identifier: GTFS_STOP_TIMES
+        description: "Raw scheduled stop times for static GTFS trips."
 
       - name: gtfs_rt_stop_updates
         identifier: GTFS_RT_STOP_UPDATES
+        description: "Historical realtime stop predictions captured from the MTA GTFS-Realtime feed."
         config:
           loaded_at_field: ingested_at_utc
           freshness:
@@ -32,7 +38,9 @@ sources:
 
       - name: gtfs_calendar
         identifier: GTFS_CALENDAR
+        description: "Raw GTFS service calendar defining normal weekly service patterns."
 
       - name: gtfs_calendar_dates
         identifier: GTFS_CALENDAR_DATES
+        description: "Raw GTFS service-date exceptions that add or remove service on specific dates."
         
