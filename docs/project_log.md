@@ -151,3 +151,100 @@ That then doubled some prediction rows downstream.
 I removed `start_time` from the trip-level intermediate models, rebuilt everything downstream, and the grain tests passed again.
 
 After that, rerunning with no new data kept the fact count the same, and adding a new realtime capture increased it like expected.
+
+---
+## First scheduled Dagster run
+
+Got the realtime ingestion running through Dagster.
+
+At first I was manually clicking Materialize, which proved Dagster could call my existing Python ingestion function.
+
+Then I added:
+- an asset
+- a job
+- a schedule that runs every 5 minutes
+
+The schedule fired automatically at 12:50 and again at 12:55 without me clicking anything.
+
+The flow right now is:
+
+MTA API
+→ Python ingestion
+→ Snowflake RAW
+
+Dagster is not doing the ingestion itself. My Python function still does that. Dagster is just coordinating when it runs and keeping track of the run.
+
+Also learned that local Dagster only works while `dagster dev` is running and my laptop is awake. If the laptop sleeps, the local scheduler stops.
+
+Next step is to have Dagster trigger dbt after ingestion so the whole pipeline can run automatically.
+
+---
+
+## Dagster exposed real dbt issues
+
+When I first ran `dbt build` through Dagster, the pipeline failed.
+
+The first issue was a grain problem in `int_realtime_trip_matches`. One realtime trip was joining to multiple active services on the same date, which created duplicate candidate rows.
+
+I changed the join so static trips are first tied to the dates their services are active, and then realtime trips match against those valid static trips. The grain test passed after that.
+
+The second issue was a stop relationship test. Realtime had some stop IDs that did not exist in the static GTFS snapshot. I confirmed they were missing from RAW static stops and stop_times too, and they were not reaching the final comparison/fact models.
+
+I changed that relationship test to a warning instead of failing the whole pipeline.
+
+I also changed the service_id not-null test so it only applies to matched trips, since unmatched trips can legitimately have no static service_id.
+
+After all of that, the full `dbt build` passed.
+
+## First automated full pipeline run
+
+The full Dagster schedule finally ran by itself.
+
+I turned on the five-minute schedule and waited for the next clock boundary instead of manually clicking Materialize.
+
+At 15:30 Dagster automatically launched `metropulse_pipeline_job`.
+
+The order worked as expected:
+
+gtfs_rt_stop_updates
+→ dbt_transformations
+
+The realtime ingestion completed first, then Dagster ran `dbt build`, and the whole job finished successfully.
+
+This is different from the earlier manual tests because Dagster is now actually coordinating the pipeline on a schedule.
+
+So at this point the local MetroPulse pipeline can automatically:
+
+## Added source freshness to Dagster
+
+I added the realtime source freshness check into the Dagster pipeline between ingestion and dbt.
+
+The order is now:
+
+gtfs_rt_stop_updates
+→ gtfs_rt_source_freshness
+→ dbt_transformations
+
+I manually materialized all three assets and they all succeeded.
+
+This means Dagster now checks that the RAW realtime source is recent before running the downstream dbt models.
+
+## Making realtime ingestion safer
+
+Before adding retries in Dagster, I realized there was a possible problem if a Snowflake load failed halfway through.
+
+If some rows from an MTA snapshot were saved and then the connection failed, a retry could see that snapshot already existed and skip it even though only part of it had loaded.
+
+So I changed the Snowflake load to work as one transaction.
+
+Now:
+
+- if the whole snapshot loads successfully, it commits
+- if something fails during the load, it rolls everything back
+- the error is still raised so Dagster can see that the ingestion failed
+
+After that I added a Dagster retry policy to the realtime ingestion asset.
+
+Dagster can now retry the ingestion up to two times after a temporary failure, with a short wait between attempts.
+
+The main thing I learned here is that retries are safer when the thing being retried can fail cleanly instead of leaving half-finished data behind.

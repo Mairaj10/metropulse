@@ -84,9 +84,11 @@ models:
           - not_null
 
       - name: service_id
-        description: "GTFS service active on the realtime trip's service date."
+        description: "GTFS service for the matched static trip. Null when no confident match is found."
         data_tests:
-          - not_null
+          - not_null:
+              config:
+                where: "match_status = 'matched'"
 
       - name: match_status
         description: "Indicates whether a confident static trip match was found."
