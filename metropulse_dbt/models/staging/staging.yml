@@ -2,103 +2,203 @@ version: 2
 
 models:
   - name: stg_gtfs_routes
-    description: "provides information about the routes in the GTFS data for MTA"
+    description: "Provides information about the routes in the GTFS data for MTA."
+
     columns:
       - name: route_id
-        description: "Unique identifier for each route"
+        description: "Unique identifier for each route."
         data_tests:
           - not_null
           - unique
+
+      - name: agency_id
+        description: "GTFS agency responsible for the route."
+
+      - name: route_short_name
+        description: "Short public-facing route name."
+
+      - name: route_long_name
+        description: "Longer descriptive route name."
+
+      - name: route_desc
+        description: "Additional route description when provided."
+
+      - name: route_type
+        description: "GTFS code describing the type of transit service."
+
+      - name: route_color
+        description: "Display color assigned to the route."
+
+      - name: route_text_color
+        description: "Text color intended to be displayed with the route color."
+
+      - name: route_sort_order
+        description: "GTFS value used to control route display order."
+
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database"
+        description: "Timestamp when the record was loaded into the database."
         data_tests:
           - not_null
 
+
   - name: stg_gtfs_stops
-    description: "provides information about the stops in the GTFS data for MTA"
+    description: "Provides information about the stops in the GTFS data for MTA."
+
     columns:
       - name: stop_id
-        description: "Unique identifier for each stop"
+        description: "Unique identifier for each stop."
         data_tests:
           - not_null
           - unique
+
+      - name: stop_name
+        description: "Name of the GTFS stop."
+
+      - name: stop_lat
+        description: "Latitude of the stop."
+
+      - name: stop_lon
+        description: "Longitude of the stop."
+
+      - name: location_type
+        description: "GTFS code describing the type of stop location."
+
+      - name: parent_station
+        description: "Parent station associated with the stop when one exists."
+
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database"
+        description: "Timestamp when the record was loaded into the database."
         data_tests:
           - not_null
+
+
   - name: stg_gtfs_trips
-    description: "provides information about the trips in the GTFS data for MTA"
+    description: "Provides information about the trips in the GTFS data for MTA."
+
     columns:
       - name: trip_id
-        description: "Unique identifier for each trip"
+        description: "Unique identifier for each trip."
         data_tests:
           - not_null
           - unique
-      - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database"
-        data_tests:
-          - not_null
+
       - name: route_id
-        description: "Identifier for the route associated with the trip"
+        description: "Identifier for the route associated with the trip."
         data_tests:
           - not_null
           - relationships:
               arguments:
                 to: ref('stg_gtfs_routes')
                 field: route_id
+
+      - name: service_id
+        description: "GTFS service calendar associated with the trip."
+
+      - name: trip_headsign
+        description: "Destination or direction text for the scheduled trip."
+
       - name: direction_id
-        description: "Indicates the direction of travel for the trip (0 or 1)"
+        description: "Indicates the direction of travel for the trip (0 or 1)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
-        
+
+      - name: shape_id
+        description: "GTFS shape associated with the trip when available."
+
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database."
+        data_tests:
+          - not_null
+
+
   - name: stg_gtfs_stop_times
-    description: "provides information about the stop times in the GTFS data for MTA"
+    description: "Provides information about the stop times in the GTFS data for MTA."
+
     columns:
       - name: trip_id
-        description: "identifies which trip this stop occurrence belongs to"
+        description: "Identifies which trip this stop occurrence belongs to."
         data_tests:
           - not_null
           - relationships:
               arguments:
                 to: ref('stg_gtfs_trips')
                 field: trip_id
+
       - name: stop_id
-        description: "identifies which stop this row refers to"
+        description: "Identifies which stop this row refers to."
         data_tests:
           - not_null
           - relationships:
               arguments:
                 to: ref('stg_gtfs_stops')
                 field: stop_id
+
       - name: arrival_time
-        description: "schedule time when the vehicle arrives at the stop"
-        data_tests:
-          - not_null
-      - name: departure_time
-        description: "schedule time when the vehicle departs from the stop"
-        data_tests:
-          - not_null
-      - name: stop_sequence
-        description: "Order of stops in the trip"
-        data_tests:
-          - not_null
-      - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database"
+        description: "Scheduled time when the vehicle arrives at the stop."
         data_tests:
           - not_null
 
-  - name: stg_gtfs_rt_stop_updates
-    description: "provides information about the real-time stop updates in the GTFS data for MTA"
-    columns:
-      - name: trip_id
-        description: "identifies which trip this stop update belongs to"
+      - name: departure_time
+        description: "Scheduled time when the vehicle departs from the stop."
         data_tests:
           - not_null
-      - name: stop_id 
-        description: "identifies which stop this row refers to"
+
+      - name: stop_sequence
+        description: "Order of stops within the trip."
+        data_tests:
+          - not_null
+
+      - name: loaded_at_utc
+        description: "Timestamp when the record was loaded into the database."
+        data_tests:
+          - not_null
+
+
+  - name: stg_gtfs_rt_stop_updates
+    description: "Provides realtime stop predictions captured from the MTA GTFS-Realtime feed."
+
+    columns:
+      - name: ingested_at_utc
+        description: "Timestamp when MetroPulse captured the realtime feed."
+        data_tests:
+          - not_null
+
+      - name: feed_generated_at
+        description: "Timestamp when MTA generated the realtime feed."
+        data_tests:
+          - not_null
+
+      - name: entity_id
+        description: "Identifier of the entity in the MTA realtime feed."
+
+      - name: trip_id
+        description: "Identifies which realtime trip this stop update belongs to."
+        data_tests:
+          - not_null
+
+      - name: route_id
+        description: "Identifies which route this realtime trip belongs to."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs_routes')
+                field: route_id
+
+      - name: start_date
+        description: "Service date reported by the realtime trip."
+
+      - name: start_time
+        description: "Realtime trip start time reported by the MTA feed."
+
+      - name: trip_update_timestamp
+        description: "Timestamp when the MTA trip update was generated."
+
+      - name: stop_id
+        description: "Identifies which stop this realtime prediction refers to."
         data_tests:
           - not_null
           - relationships:
@@ -107,131 +207,139 @@ models:
                 field: stop_id
               config:
                 severity: warn
-              
-      - name: route_id
-        description: "identifies which route this row refers to"
-        data_tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('stg_gtfs_routes')
-                field: route_id
-      - name: ingested_at_utc
-        description: "when MetroPulse captured the feed"
-        data_tests:
-          - not_null
-      - name: feed_generated_at
-        description: "when MTA generated the feed"
-        data_tests:
-          - not_null
+
+      - name: stop_sequence
+        description: "Order of the stop within the realtime trip update."
+
       - name: arrival_time
-        description: "MTA realtime predicted arrival time at the stop"
+        description: "MTA realtime predicted arrival time at the stop."
         data_tests:
           - not_null
+
       - name: departure_time
-        description: "MTA realtime predicted departure time from the stop"
+        description: "MTA realtime predicted departure time from the stop."
         data_tests:
           - not_null
+
+
   - name: stg_gtfs_calendar
-    description: "provides information about the service calendar in the GTFS data for MTA"
+    description: "Provides the normal GTFS service calendar used by MTA."
+
     columns:
       - name: service_id
-        description: "Unique identifier for each service"
+        description: "Unique identifier for each GTFS service."
         data_tests:
           - not_null
           - unique
+
       - name: monday
-        description: "Indicates if the service is available on Monday (1) or not (0)"
+        description: "Indicates if the service is available on Monday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: tuesday
-        description: "Indicates if the service is available on Tuesday (1) or not (0)"
+        description: "Indicates if the service is available on Tuesday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: wednesday
-        description: "Indicates if the service is available on Wednesday (1) or not (0)"
+        description: "Indicates if the service is available on Wednesday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: thursday
-        description: "Indicates if the service is available on Thursday (1) or not (0)"
+        description: "Indicates if the service is available on Thursday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: friday
-        description: "Indicates if the service is available on Friday (1) or not (0)"
+        description: "Indicates if the service is available on Friday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: saturday
-        description: "Indicates if the service is available on Saturday (1) or not (0)"
+        description: "Indicates if the service is available on Saturday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: sunday
-        description: "Indicates if the service is available on Sunday (1) or not (0)"
+        description: "Indicates if the service is available on Sunday (1) or not (0)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [0, 1]
+
       - name: start_date
-        description: "Date when this service schedule starts"
+        description: "Date when this service schedule starts."
         data_tests:
           - not_null
+
       - name: end_date
-        description: "Date when this service schedule ends"
+        description: "Date when this service schedule ends."
         data_tests:
           - not_null
+
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database"
+        description: "Timestamp when the record was loaded into the database."
         data_tests:
           - not_null
+
+
   - name: stg_gtfs_calendar_dates
-    description: "provides information about the service exceptions in the GTFS data for MTA"
+    description: "Provides GTFS service exceptions that add or remove service on specific dates."
+
     columns:
       - name: service_id
-        description: "Unique identifier for each service"
+        description: "GTFS service affected by the exception."
         data_tests:
           - not_null
           - relationships:
               arguments:
                 to: ref('stg_gtfs_calendar')
                 field: service_id
+
+      - name: date
+        description: "Date when the service exception applies."
+        data_tests:
+          - not_null
+
       - name: exception_type
-        description: "Indicates the type of exception (1 for added service, 2 for removed service)"
+        description: "GTFS exception type: 1 adds service and 2 removes service."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [1, 2]
+
       - name: exception_action
-        description: "Indicates the action of the exception (1 for added service, 2 for removed service)"
+        description: "Readable version of the GTFS exception action."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['add_service', 'remove_service']
-      - name: date
-        description: "Date when this service exception applies"
-        data_tests:
-          - not_null
+
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database"
+        description: "Timestamp when the record was loaded into the database."
         data_tests:
           - not_null
         

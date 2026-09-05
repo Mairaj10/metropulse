@@ -122,6 +122,8 @@ models:
         description: "Service date of the realtime trip."
         data_tests:
           - not_null
+      - name: route_id
+        description: "Route associated with the matched realtime trip."
 
       - name: stop_id
         description: "GTFS stop identifier."

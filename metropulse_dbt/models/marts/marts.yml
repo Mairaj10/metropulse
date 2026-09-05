@@ -10,43 +10,58 @@ models:
         data_tests:
           - not_null
           - unique
+
+      - name: stop_name
+        description: "Name of the GTFS stop."
+
+      - name: stop_lat
+        description: "Latitude of the stop."
+
+      - name: stop_lon
+        description: "Longitude of the stop."
+
+      - name: location_type
+        description: "GTFS code describing the type of stop location."
+
+      - name: parent_station
+        description: "Parent station associated with the stop when one exists."
+
+
   - name: dim_routes
     description: "One row per GTFS route with descriptive route information."
+
     columns:
       - name: route_id
         description: "Unique GTFS route identifier."
         data_tests:
           - not_null
           - unique
-  - name: fct_stop_predictions
-    description: "One row per realtime stop prediction captured for a trip and stop."
 
-    columns:
-      - name: route_id
-        data_tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_routes')
-                field: route_id
+      - name: agency_id
+        description: "GTFS agency responsible for the route."
 
-      - name: stop_id
-        data_tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_stops')
-                field: stop_id
-                
-      - name: static_trip_id
-        data_tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_trips')
-                field: trip_id
-      - name: predicted_delay_seconds
-        description: "Difference in seconds between scheduled and predicted arrival."
+      - name: route_short_name
+        description: "Short public-facing name of the route."
+
+      - name: route_long_name
+        description: "Longer descriptive name of the route."
+
+      - name: route_desc
+        description: "Additional GTFS description of the route when available."
+
+      - name: route_type
+        description: "GTFS code describing the type of transit service."
+
+      - name: route_color
+        description: "Route display color provided by GTFS."
+
+      - name: route_text_color
+        description: "Text color intended to be displayed with the route color."
+
+      - name: route_sort_order
+        description: "GTFS value used to control the display order of routes."
+
+
   - name: dim_trips
     description: "One row per scheduled GTFS trip."
 
@@ -56,3 +71,68 @@ models:
         data_tests:
           - not_null
           - unique
+
+      - name: trip_headsign
+        description: "Destination or direction text shown for the scheduled trip."
+
+      - name: route_id
+        description: "GTFS route associated with the trip."
+
+      - name: service_id
+        description: "GTFS service calendar associated with the trip."
+
+      - name: shape_id
+        description: "GTFS shape associated with the trip when available."
+
+      - name: direction_id
+        description: "GTFS direction code for the scheduled trip."
+
+
+  - name: fct_stop_predictions
+    description: "One row per realtime trip and stop prediction captured at a specific ingestion time."
+
+    columns:
+      - name: realtime_trip_id
+        description: "Trip identifier received from the MTA realtime feed."
+
+      - name: static_trip_id
+        description: "Matched scheduled GTFS trip identifier."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trips')
+                field: trip_id
+
+      - name: realtime_trip_start_date
+        description: "Service date reported by the realtime feed for the trip."
+
+      - name: stop_id
+        description: "GTFS stop associated with the prediction."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_stops')
+                field: stop_id
+
+      - name: route_id
+        description: "Route associated with the realtime trip."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_routes')
+                field: route_id
+
+      - name: ingested_at_utc
+        description: "UTC timestamp when this realtime prediction snapshot was ingested."
+
+      - name: predicted_arrival_time
+        description: "Realtime predicted arrival timestamp for the trip at the stop."
+
+      - name: scheduled_arrival_utc
+        description: "Scheduled GTFS arrival converted from New York local service time to UTC."
+
+      - name: predicted_delay_seconds
+        description: "Difference in seconds between scheduled and predicted arrival. Positive values mean predicted late and negative values mean predicted early."
