@@ -20,6 +20,15 @@ sources:
 
       - name: gtfs_rt_stop_updates
         identifier: GTFS_RT_STOP_UPDATES
+        config:
+          loaded_at_field: ingested_at_utc
+          freshness:
+            warn_after:
+              count: 15
+              period: minute
+            error_after:
+              count: 30
+              period: minute
 
       - name: gtfs_calendar
         identifier: GTFS_CALENDAR

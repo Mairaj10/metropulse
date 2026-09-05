@@ -69,7 +69,7 @@ def extract_stop_updates(feed, ingested_at):
     return records
 
 
-def load_to_snowflake(records):
+def load_to_snowflake(records, feed_generated_at_epoch):
     load_dotenv()
 
     connection = snowflake.connector.connect(
@@ -83,6 +83,21 @@ def load_to_snowflake(records):
     )
 
     cursor = connection.cursor()
+
+    check_sql = """
+        SELECT 1
+        FROM GTFS_RT_STOP_UPDATES
+        WHERE FEED_GENERATED_AT_EPOCH = %s
+        LIMIT 1
+    """
+
+    cursor.execute(check_sql, (feed_generated_at_epoch,))
+
+    if cursor.fetchone():
+        print("This MTA feed snapshot is already loaded. Skipping.")
+        cursor.close()
+        connection.close()
+        return
 
     insert_sql = """
         INSERT INTO GTFS_RT_STOP_UPDATES (
@@ -123,7 +138,6 @@ def load_to_snowflake(records):
         rows.append(row)
 
     cursor.executemany(insert_sql, rows)
-
     connection.commit()
 
     cursor.close()
@@ -141,4 +155,4 @@ records = extract_stop_updates(feed, ingested_at)
 print("Entities received:", len(feed.entity))
 print("Stop-update rows:", len(records))
 
-load_to_snowflake(records)
+load_to_snowflake(records, feed.header.timestamp)
