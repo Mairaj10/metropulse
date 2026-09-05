@@ -80,79 +80,91 @@ def load_to_snowflake(records, feed_generated_at_epoch):
         warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
         database=os.getenv("SNOWFLAKE_DATABASE"),
         schema=os.getenv("SNOWFLAKE_SCHEMA"),
+        autocommit=False,
     )
 
     cursor = connection.cursor()
 
-    check_sql = """
-        SELECT 1
-        FROM GTFS_RT_STOP_UPDATES
-        WHERE FEED_GENERATED_AT_EPOCH = %s
-        LIMIT 1
-    """
+    try:
+        check_sql = """
+            SELECT 1
+            FROM GTFS_RT_STOP_UPDATES
+            WHERE FEED_GENERATED_AT_EPOCH = %s
+            LIMIT 1
+        """
 
-    cursor.execute(check_sql, (feed_generated_at_epoch,))
+        cursor.execute(check_sql, (feed_generated_at_epoch,))
 
-    if cursor.fetchone():
-        print("This MTA feed snapshot is already loaded. Skipping.")
+        if cursor.fetchone():
+            print("This MTA feed snapshot is already loaded. Skipping.")
+            return
+
+        insert_sql = """
+            INSERT INTO GTFS_RT_STOP_UPDATES (
+                INGESTED_AT_UTC,
+                FEED_GENERATED_AT_EPOCH,
+                ENTITY_ID,
+                TRIP_ID,
+                ROUTE_ID,
+                START_DATE,
+                START_TIME,
+                TRIP_UPDATE_TIMESTAMP_EPOCH,
+                STOP_ID,
+                STOP_SEQUENCE,
+                ARRIVAL_TIME_EPOCH,
+                DEPARTURE_TIME_EPOCH
+            )
+
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        rows = []
+
+        for record in records:
+            row = (
+                record["ingested_at_utc"],
+                record["feed_generated_at_epoch"],
+                record["entity_id"],
+                record["trip_id"],
+                record["route_id"],
+                record["start_date"],
+                record["start_time"],
+                record["trip_update_timestamp_epoch"],
+                record["stop_id"],
+                record["stop_sequence"],
+                record["arrival_time_epoch"],
+                record["departure_time_epoch"],
+            )
+
+            rows.append(row)
+
+        cursor.executemany(insert_sql, rows)
+
+        connection.commit()
+
+        print("Rows loaded to Snowflake:", len(rows))
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
         cursor.close()
         connection.close()
-        return
-
-    insert_sql = """
-        INSERT INTO GTFS_RT_STOP_UPDATES (
-            INGESTED_AT_UTC,
-            FEED_GENERATED_AT_EPOCH,
-            ENTITY_ID,
-            TRIP_ID,
-            ROUTE_ID,
-            START_DATE,
-            START_TIME,
-            TRIP_UPDATE_TIMESTAMP_EPOCH,
-            STOP_ID,
-            STOP_SEQUENCE,
-            ARRIVAL_TIME_EPOCH,
-            DEPARTURE_TIME_EPOCH
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-
-    rows = []
-
-    for record in records:
-        row = (
-            record["ingested_at_utc"],
-            record["feed_generated_at_epoch"],
-            record["entity_id"],
-            record["trip_id"],
-            record["route_id"],
-            record["start_date"],
-            record["start_time"],
-            record["trip_update_timestamp_epoch"],
-            record["stop_id"],
-            record["stop_sequence"],
-            record["arrival_time_epoch"],
-            record["departure_time_epoch"],
-        )
-
-        rows.append(row)
-
-    cursor.executemany(insert_sql, rows)
-    connection.commit()
-
-    cursor.close()
-    connection.close()
-
-    print("Rows loaded to Snowflake:", len(rows))
 
 
-ingested_at = datetime.now(timezone.utc)
+def run_realtime_ingestion():
+    ingested_at = datetime.now(timezone.utc)
 
-feed = fetch_mta_feed()
+    feed = fetch_mta_feed()
 
-records = extract_stop_updates(feed, ingested_at)
+    records = extract_stop_updates(feed, ingested_at)
 
-print("Entities received:", len(feed.entity))
-print("Stop-update rows:", len(records))
+    print("Entities received:", len(feed.entity))
+    print("Stop-update rows:", len(records))
 
-load_to_snowflake(records, feed.header.timestamp)
+    load_to_snowflake(records, feed.header.timestamp)
+
+
+if __name__ == "__main__":
+    run_realtime_ingestion()

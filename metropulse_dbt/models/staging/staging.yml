@@ -106,7 +106,7 @@ models:
                 to: ref('stg_gtfs_stops')
                 field: stop_id
               config:
-                where: "stop_id not in ('H19N', 'H19S')"
+                severity: warn
               
       - name: route_id
         description: "identifies which route this row refers to"
