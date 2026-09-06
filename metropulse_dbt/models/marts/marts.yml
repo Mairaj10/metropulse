@@ -3,6 +3,8 @@ version: 2
 models:
   - name: dim_stops
     description: "One row per GTFS stop with descriptive stop information."
+    config:
+      copy_grants: true
 
     columns:
       - name: stop_id
@@ -29,6 +31,8 @@ models:
 
   - name: dim_routes
     description: "One row per GTFS route with descriptive route information."
+    config:
+      copy_grants: true
 
     columns:
       - name: route_id
@@ -152,6 +156,7 @@ models:
       routes using New York local predicted arrival date and hour.
 
     config:
+      copy_grants: true
       contract:
         enforced: true
 
@@ -222,6 +227,7 @@ models:
       dashboard-scoped routes using New York local predicted arrival date and hour.
 
     config:
+      copy_grants: true
       contract:
         enforced: true
 
@@ -303,6 +309,7 @@ models:
       routes using New York local predicted arrival date and hour.
 
     config:
+      copy_grants: true
       contract:
         enforced: true
 
