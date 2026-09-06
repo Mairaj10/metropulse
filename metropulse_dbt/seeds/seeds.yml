@@ -1,0 +1,16 @@
+version: 2
+
+seeds:
+  - name: dashboard_route_scope
+    description: "Routes intentionally included in the MetroPulse dashboard."
+
+    columns:
+      - name: route_id
+        description: "GTFS route identifier included in dashboard analysis."
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_routes')
+                field: route_id
