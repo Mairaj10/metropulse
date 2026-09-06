@@ -4,3 +4,6 @@ pandas==3.0.5
 python-dotenv==1.2.3
 requests==2.34.2
 snowflake-connector-python==4.7.2
+
+dagster==1.13.21
+dagster-webserver==1.13.21
