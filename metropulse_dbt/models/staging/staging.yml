@@ -117,6 +117,13 @@ models:
   - name: stg_gtfs_stop_times
     description: "Provides information about the stop times in the GTFS data for MTA."
 
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - trip_id
+              - stop_sequence
+
     columns:
       - name: trip_id
         description: "Identifies which trip this stop occurrence belongs to."
@@ -159,6 +166,14 @@ models:
 
   - name: stg_gtfs_rt_stop_updates
     description: "Provides realtime stop predictions captured from the MTA GTFS-Realtime feed."
+
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - trip_id
+              - stop_id
+              - ingested_at_utc
 
     columns:
       - name: ingested_at_utc
@@ -306,6 +321,13 @@ models:
 
   - name: stg_gtfs_calendar_dates
     description: "Provides GTFS service exceptions that add or remove service on specific dates."
+
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - service_id
+              - date
 
     columns:
       - name: service_id

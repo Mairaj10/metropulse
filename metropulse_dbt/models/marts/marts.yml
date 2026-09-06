@@ -91,6 +91,14 @@ models:
   - name: fct_stop_predictions
     description: "One row per realtime trip and stop prediction captured at a specific ingestion time."
 
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - realtime_trip_id
+              - stop_id
+              - ingested_at_utc
+
     columns:
       - name: realtime_trip_id
         description: "Trip identifier received from the MTA realtime feed."
@@ -136,3 +144,224 @@ models:
 
       - name: predicted_delay_seconds
         description: "Difference in seconds between scheduled and predicted arrival. Positive values mean predicted late and negative values mean predicted early."
+
+
+  - name: agg_route_delay_summary
+    description: >
+      Hourly route-level summary of predicted subway delays for dashboard-scoped
+      routes using New York local predicted arrival date and hour.
+
+    config:
+      contract:
+        enforced: true
+
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - route_id
+              - predicted_arrival_date_ny
+              - predicted_arrival_hour_ny
+
+    columns:
+      - name: route_id
+        description: "GTFS route identifier."
+        data_type: varchar
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_routes')
+                field: route_id
+
+      - name: predicted_arrival_date_ny
+        description: "New York local date of the predicted arrival."
+        data_type: date
+        data_tests:
+          - not_null
+
+      - name: predicted_arrival_hour_ny
+        description: "New York local hour of the predicted arrival, from 0 to 23."
+        data_type: number(2,0)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+
+      - name: prediction_count
+        description: "Number of non-null predicted delay observations in the route/date/hour bucket."
+        data_type: number(18,0)
+        data_tests:
+          - not_null
+
+      - name: avg_predicted_delay_seconds
+        description: "Average predicted delay in seconds for the route/date/hour bucket."
+        data_type: number(37,2)
+
+      - name: median_predicted_delay_seconds
+        description: "Median predicted delay in seconds for the route/date/hour bucket."
+        data_type: number(22,2)
+
+      - name: pct_predicted_late
+        description: "Percent of predictions later than the configured delay tolerance."
+        data_type: number(23,2)
+
+      - name: pct_predicted_early
+        description: "Percent of predictions earlier than the configured delay tolerance."
+        data_type: number(23,2)
+
+      - name: pct_roughly_on_time
+        description: "Percent of predictions within the configured delay tolerance."
+        data_type: number(23,2)
+
+
+  - name: agg_stop_route_delay_summary
+    description: >
+      Hourly stop-and-route-level summary of predicted subway delays for
+      dashboard-scoped routes using New York local predicted arrival date and hour.
+
+    config:
+      contract:
+        enforced: true
+
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - stop_id
+              - route_id
+              - predicted_arrival_date_ny
+              - predicted_arrival_hour_ny
+
+    columns:
+      - name: stop_id
+        description: "GTFS stop identifier."
+        data_type: varchar
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_stops')
+                field: stop_id
+
+      - name: route_id
+        description: "GTFS route identifier."
+        data_type: varchar
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_routes')
+                field: route_id
+
+      - name: predicted_arrival_date_ny
+        description: "New York local date of the predicted arrival."
+        data_type: date
+        data_tests:
+          - not_null
+
+      - name: predicted_arrival_hour_ny
+        description: "New York local hour of the predicted arrival, from 0 to 23."
+        data_type: number(2,0)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+
+      - name: prediction_count
+        description: "Number of non-null predicted delay observations in the stop/route/date/hour bucket."
+        data_type: number(18,0)
+        data_tests:
+          - not_null
+
+      - name: avg_predicted_delay_seconds
+        description: "Average predicted delay in seconds for the stop/route/date/hour bucket."
+        data_type: number(37,2)
+
+      - name: median_predicted_delay_seconds
+        description: "Median predicted delay in seconds for the stop/route/date/hour bucket."
+        data_type: number(22,2)
+
+      - name: pct_predicted_late
+        description: "Percent of predictions later than the configured delay tolerance."
+        data_type: number(23,2)
+
+      - name: pct_predicted_early
+        description: "Percent of predictions earlier than the configured delay tolerance."
+        data_type: number(23,2)
+
+      - name: pct_roughly_on_time
+        description: "Percent of predictions within the configured delay tolerance."
+        data_type: number(23,2)
+
+
+  - name: agg_stop_delay_summary
+    description: >
+      Hourly stop-level summary of predicted subway delays across dashboard-scoped
+      routes using New York local predicted arrival date and hour.
+
+    config:
+      contract:
+        enforced: true
+
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - stop_id
+              - predicted_arrival_date_ny
+              - predicted_arrival_hour_ny
+
+    columns:
+      - name: stop_id
+        description: "GTFS stop identifier."
+        data_type: varchar
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_stops')
+                field: stop_id
+
+      - name: predicted_arrival_date_ny
+        description: "New York local date of the predicted arrival."
+        data_type: date
+        data_tests:
+          - not_null
+
+      - name: predicted_arrival_hour_ny
+        description: "New York local hour of the predicted arrival, from 0 to 23."
+        data_type: number(2,0)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+
+      - name: prediction_count
+        description: "Number of non-null predicted delay observations in the stop/date/hour bucket."
+        data_type: number(18,0)
+        data_tests:
+          - not_null
+
+      - name: avg_predicted_delay_seconds
+        description: "Average predicted delay in seconds for the stop/date/hour bucket."
+        data_type: number(37,2)
+
+      - name: median_predicted_delay_seconds
+        description: "Median predicted delay in seconds for the stop/date/hour bucket."
+        data_type: number(22,2)
+
+      - name: pct_predicted_late
+        description: "Percent of predictions later than the configured delay tolerance."
+        data_type: number(23,2)
+
+      - name: pct_predicted_early
+        description: "Percent of predictions earlier than the configured delay tolerance."
+        data_type: number(23,2)
+
+      - name: pct_roughly_on_time
+        description: "Percent of predictions within the configured delay tolerance."
+        data_type: number(23,2)

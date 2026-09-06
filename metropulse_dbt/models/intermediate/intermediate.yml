@@ -5,6 +5,13 @@ models:
   - name: int_active_services_by_date
     description: "Identifies which GTFS services are active for each realtime service date."
 
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - service_date
+              - service_id
+
     columns:
       - name: service_date
         description: "Date the realtime trip belongs to."
@@ -40,6 +47,13 @@ models:
   - name: int_realtime_trips
     description: "Collapses realtime stop-level updates into one row per realtime trip instance."
 
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - trip_id
+              - start_date
+
     columns:
       - name: trip_id
         description: "Realtime trip identifier."
@@ -58,6 +72,13 @@ models:
 
   - name: int_realtime_trip_matches
     description: "Matches realtime trips to their corresponding static scheduled trips using route, active service, and trip ID structure."
+
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - realtime_trip_id
+              - realtime_trip_start_date
 
     columns:
       - name: realtime_trip_id
@@ -103,6 +124,14 @@ models:
       Matches realtime stop predictions to the scheduled GTFS arrival
       for the same trip and stop.
 
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - realtime_trip_id
+              - stop_id
+              - ingested_at_utc
+
     columns:
       - name: realtime_trip_id
         description: "Realtime trip identifier."
@@ -122,6 +151,7 @@ models:
         description: "Service date of the realtime trip."
         data_tests:
           - not_null
+
       - name: route_id
         description: "Route associated with the matched realtime trip."
 
