@@ -422,3 +422,68 @@ tests check the data,
 contracts protect the shape of the model.
 
 I’m keeping contracts on the dashboard-facing marts for now instead of putting them everywhere just because I can.
+
+## BI exposed the missing history
+
+I finally connected the analytics marts to Looker Studio and expected the delay charts to start looking like the final dashboard.
+
+Instead, some of the line charts looked disconnected and the data felt much thinner than I expected.
+
+At first I thought the marts might be wrong, but the real problem was earlier in the pipeline.
+
+The realtime MTA data had only been captured whenever I happened to run Dagster locally. My laptop was not collecting snapshots continuously, so there were big gaps across dates and hours.
+
+That also explained why trying to build broader dashboard metrics from the hourly marts felt awkward. The marts were not necessarily wrong — the underlying realtime history was just sparse.
+
+I paused the BI work instead of trying to make the charts look better with incomplete data.
+
+The project needed continuous data collection first.
+
+## 📝 Moved realtime ingestion off my laptop and onto AWS
+
+The sparse-history problem pushed the project somewhere I had not originally planned to take it.
+
+I deployed MetroPulse onto an AWS EC2 instance so the pipeline could keep running even when my Mac is asleep.
+
+This was my first time using cloud infrastructure, so I learned the parts of AWS that were actually needed for the project instead of trying to learn everything at once.
+
+I created a small Ubuntu EC2 server, connected to it through SSH, cloned the MetroPulse repo, recreated the Python virtual environment, installed the project dependencies, configured dbt, and confirmed the server could connect to Snowflake.
+
+Then I tested the full path directly from EC2:
+
+MTA realtime API → Python ingestion → Snowflake RAW → dbt freshness → dbt build.
+
+Once that worked, I stopped relying on `dagster dev` and created Linux systemd services for the Dagster webserver and daemon.
+
+Both services are enabled to start automatically if the EC2 instance reboots.
+
+I also kept the Dagster UI private instead of opening port 3000 to the internet. I access it from my Mac through an SSH tunnel.
+
+The schedules are now split:
+
+- realtime ingestion every 5 minutes
+- source freshness + dbt build every 15 minutes
+
+I watched the first ingestion job launch automatically from the AWS Dagster daemon, then watched the first dbt refresh job launch automatically a few minutes later.
+
+No manual Materialize button and no laptop doing the work.
+
+This was the point where MetroPulse stopped being a pipeline that only worked while I was developing it locally and started behaving like an actual continuously running data system.
+
+## First overnight check of the cloud pipeline
+
+Left MetroPulse running overnight for the first time and checked what actually happened without my laptop involved.
+
+The realtime ingestion was healthy. Every complete hour had 12 snapshots, which is exactly what I expected from a 5-minute schedule.
+
+That was the first real proof that the missing-history problem from the BI phase was being fixed.
+
+I also found that Ubuntu had run a large automatic system update overnight. During that maintenance window, the Dagster webserver and daemon were restarted several times and one dbt refresh was interrupted.
+
+The important part was that systemd brought Dagster back automatically and the realtime ingestion continued. The pipeline recovered without me doing anything.
+
+I then checked Snowflake warehouse usage and found another issue: the warehouse auto-suspend was set to 300 seconds, which matched the 5-minute ingestion schedule almost perfectly. That meant the X-Small warehouse was staying awake nearly all the time.
+
+I changed AUTO_SUSPEND from 300 seconds to 60 seconds so Snowflake can sleep between ingestion runs instead of burning credits while idle.
+
+This was my first real operations check of MetroPulse: not just whether the pipeline could run, but whether it could recover and whether it was using cloud resources sensibly.
