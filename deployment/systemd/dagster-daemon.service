@@ -1,0 +1,16 @@
+[Unit]
+Description=MetroPulse Dagster Daemon
+After=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/metropulse
+EnvironmentFile=/home/ubuntu/metropulse/.env
+Environment="DAGSTER_HOME=/home/ubuntu/.dagster_home"
+Environment="PATH=/home/ubuntu/metropulse/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/ubuntu/metropulse/.venv/bin/dagster-daemon run -w /home/ubuntu/metropulse/workspace.yaml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
