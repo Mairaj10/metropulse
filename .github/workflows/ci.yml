@@ -1,0 +1,28 @@
+name: MetroPulse CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  basic-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get repository code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: python -m compileall src orchestration
+
+      - name: Show dbt version
+        run: dbt --version
