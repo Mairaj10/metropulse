@@ -487,3 +487,25 @@ I then checked Snowflake warehouse usage and found another issue: the warehouse 
 I changed AUTO_SUSPEND from 300 seconds to 60 seconds so Snowflake can sleep between ingestion runs instead of burning credits while idle.
 
 This was my first real operations check of MetroPulse: not just whether the pipeline could run, but whether it could recover and whether it was using cloud resources sensibly.
+
+## Added CI for pull requests
+
+Added GitHub Actions so changes now get checked before I merge a feature branch into `main`.
+
+I was already using branches, so at first CI felt a bit like another layer on top of something Git was already doing.
+
+The difference finally made sense though.
+
+A branch keeps unfinished code separate from `main`, but it does not prove that the code actually works.
+
+Now when I open a pull request, GitHub starts a fresh runner, installs the project dependencies, checks the Python code, connects to Snowflake, and runs the dbt build and tests.
+
+I also made a separate `DBT_CI` schema instead of letting pull request code build into `DBT_DEV`, since `DBT_DEV` is the version being refreshed by the pipeline on EC2.
+
+The Snowflake connection for CI uses its own user and restricted role too, so GitHub only has the permissions it actually needs.
+
+I added dbt state comparison as well, so the CI logs can tell which dbt models changed compared with `main` and which downstream models could be affected.
+
+I spent some time looking at Slim CI and `defer`, but right now the full dbt build is still fast enough that adding more CI schemas and extra routing logic feels unnecessary.
+
+I’m leaving that alone unless the project actually gets slow or expensive enough to need it.
