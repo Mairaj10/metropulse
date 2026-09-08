@@ -19,8 +19,14 @@ jobs:
       SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
 
     steps:
-      - name: Get repository code
+      - name: Get PR repository code
         uses: actions/checkout@v7
+
+      - name: Get stable main code
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: main-state
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -29,6 +35,14 @@ jobs:
 
       - name: Install project dependencies
         run: pip install -r requirements.txt
+
+      - name: Generate stable dbt state
+        working-directory: main-state/metropulse_dbt
+        run: dbt parse --profiles-dir ../.github/dbt-ci
+
+      - name: Show changed dbt models
+        working-directory: metropulse_dbt
+        run: dbt ls --select state:modified+ --state ../main-state/metropulse_dbt/target --profiles-dir ../.github/dbt-ci --resource-type model --output name
 
       - name: Check Python syntax
         run: python -m compileall src orchestration
