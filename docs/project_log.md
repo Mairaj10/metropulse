@@ -509,3 +509,15 @@ I added dbt state comparison as well, so the CI logs can tell which dbt models c
 I spent some time looking at Slim CI and `defer`, but right now the full dbt build is still fast enough that adding more CI schemas and extra routing logic feels unnecessary.
 
 I’m leaving that alone unless the project actually gets slow or expensive enough to need it.
+
+## Added a Snowflake credit guardrail
+
+Checked the warehouse metering again after changing AUTO_SUSPEND to 60 seconds.
+
+The difference was pretty clear. Usage had been around 1.3–1.5 credits per hour for a lot of the earlier hours, and after the change it was mostly around 0.5 credits per hour.
+
+Since MetroPulse is now running continuously, I also added a daily Resource Monitor to `COMPUTE_WH` so there is a limit if usage unexpectedly climbs again.
+
+The quota is 20 credits per day, with warnings at 75% and 90%, and the warehouse suspends at 100%.
+
+I mainly wanted this as a guardrail rather than finding out about runaway warehouse usage after the credits were already gone.
