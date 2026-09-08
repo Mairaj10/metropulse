@@ -9,6 +9,15 @@ jobs:
   basic-checks:
     runs-on: ubuntu-latest
 
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+
     steps:
       - name: Get repository code
         uses: actions/checkout@v7
@@ -24,5 +33,10 @@ jobs:
       - name: Check Python syntax
         run: python -m compileall src orchestration
 
-      - name: Show dbt version
-        run: dbt --version
+      - name: Check dbt connection
+        working-directory: metropulse_dbt
+        run: dbt debug --profiles-dir ../.github/dbt-ci
+
+      - name: Build and test dbt project
+        working-directory: metropulse_dbt
+        run: dbt build --profiles-dir ../.github/dbt-ci
