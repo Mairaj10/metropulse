@@ -21,8 +21,7 @@ prepared AS (
 
     SELECT
         route_id,
-        TO_DATE(predicted_arrival_ny) AS predicted_arrival_date_ny,
-        EXTRACT(HOUR FROM predicted_arrival_ny) AS predicted_arrival_hour_ny,
+        DATE_TRUNC('HOUR', predicted_arrival_ny) AS predicted_arrival_hour_ts_ny,
         predicted_delay_seconds
 
     FROM base
@@ -31,13 +30,13 @@ prepared AS (
 
 SELECT
     route_id,
-    predicted_arrival_date_ny,
-    predicted_arrival_hour_ny,
+    TO_DATE(predicted_arrival_hour_ts_ny) AS predicted_arrival_date_ny,
+    EXTRACT(HOUR FROM predicted_arrival_hour_ts_ny) AS predicted_arrival_hour_ny,
+    predicted_arrival_hour_ts_ny,
     {{ predicted_delay_metrics('predicted_delay_seconds') }}
 
 FROM prepared
 
 GROUP BY
     route_id,
-    predicted_arrival_date_ny,
-    predicted_arrival_hour_ny
+    predicted_arrival_hour_ts_ny
