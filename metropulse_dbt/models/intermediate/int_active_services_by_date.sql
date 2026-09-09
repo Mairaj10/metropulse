@@ -1,78 +1,82 @@
 WITH realtime_dates AS (
 
     SELECT DISTINCT
-        start_date AS service_date
+        start_date AS service_date,
+        dayname(start_date) AS weekday_name
+
     FROM {{ ref('stg_gtfs_rt_stop_updates') }}
+
     WHERE start_date IS NOT NULL
 
 ),
 
-calendar AS (
+normal_active_services AS (
 
     SELECT
-        service_id,
-        start_date,
-        end_date,
-        monday,
-        tuesday,
-        wednesday,
-        thursday,
-        friday,
-        saturday,
-        sunday
-    FROM {{ ref('stg_gtfs_calendar') }}
+        realtime_dates.service_date,
+        realtime_dates.weekday_name,
+        calendar.service_id
+
+    FROM realtime_dates
+
+    JOIN {{ ref('stg_gtfs_calendar') }} AS calendar
+        ON realtime_dates.service_date
+           BETWEEN calendar.start_date AND calendar.end_date
+
+    WHERE
+        CASE
+            WHEN realtime_dates.weekday_name = 'Mon' THEN calendar.monday
+            WHEN realtime_dates.weekday_name = 'Tue' THEN calendar.tuesday
+            WHEN realtime_dates.weekday_name = 'Wed' THEN calendar.wednesday
+            WHEN realtime_dates.weekday_name = 'Thu' THEN calendar.thursday
+            WHEN realtime_dates.weekday_name = 'Fri' THEN calendar.friday
+            WHEN realtime_dates.weekday_name = 'Sat' THEN calendar.saturday
+            WHEN realtime_dates.weekday_name = 'Sun' THEN calendar.sunday
+        END = 1
 
 ),
 
-dated_service as (SELECT
-    realtime_dates.service_date,
-    dayname(realtime_dates.service_date) AS weekday_name,
-    calendar.service_id,
-    calendar.start_date,
-    calendar.end_date,
-    calendar.monday,
-    calendar.tuesday,
-    calendar.wednesday,
-    calendar.thursday,
-    calendar.friday,
-    calendar.saturday,
-    calendar.sunday
+added_services AS (
 
-FROM realtime_dates
+    SELECT
+        realtime_dates.service_date,
+        realtime_dates.weekday_name,
+        calendar_dates.service_id
 
-JOIN calendar
-    ON realtime_dates.service_date
-       BETWEEN calendar.start_date AND calendar.end_date),
+    FROM realtime_dates
 
-normal_service AS (SELECT service_date,
-       weekday_name,
-       service_id,
-       CASE WHEN weekday_name = 'Mon' THEN monday
-            WHEN weekday_name = 'Tue' THEN tuesday
-            WHEN weekday_name = 'Wed' THEN wednesday
-            WHEN weekday_name = 'Thu' THEN thursday
-            WHEN weekday_name = 'Fri' THEN friday
-            WHEN weekday_name = 'Sat' THEN saturday
-            WHEN weekday_name = 'Sun' THEN sunday
-       END AS runs_on_day
-FROM dated_service),
+    JOIN {{ ref('stg_gtfs_calendar_dates') }} AS calendar_dates
+        ON realtime_dates.service_date = calendar_dates.date
 
-final_service AS (SELECT
-    normal_service.service_date,
-    normal_service.weekday_name,
-    normal_service.service_id,
-    normal_service.runs_on_day,
-    calendar_dates.exception_type,
-    CASE
-        WHEN calendar_dates.exception_type = 1 THEN 1
-        WHEN calendar_dates.exception_type = 2 THEN 0
-        ELSE normal_service.runs_on_day
-    END AS is_active_service
-FROM normal_service
-LEFT JOIN {{ ref("stg_gtfs_calendar_dates") }} AS calendar_dates
-    ON normal_service.service_id = calendar_dates.service_id
-    AND normal_service.service_date = calendar_dates.date)
+    WHERE calendar_dates.exception_type = 1
 
-SELECT *
-FROM final_service
-WHERE is_active_service = 1
+),
+
+active_services AS (
+
+    SELECT * FROM normal_active_services
+
+    UNION
+
+    SELECT * FROM added_services
+
+)
+
+SELECT
+    active_services.service_date,
+    active_services.weekday_name,
+    active_services.service_id
+
+FROM active_services
+
+WHERE NOT EXISTS (
+
+    SELECT 1
+
+    FROM {{ ref('stg_gtfs_calendar_dates') }} AS removed
+
+    WHERE removed.date = active_services.service_date
+      AND removed.service_id = active_services.service_id
+      AND removed.exception_type = 2
+
+)

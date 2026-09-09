@@ -8,4 +8,4 @@ SELECT
 END AS exception_action,
     try_cast(loaded_at_utc as timestamp_tz) as loaded_at_utc
 
-FROM {{ source('raw', 'gtfs_calendar_dates') }}
+FROM {{ source('raw_supplemented', 'gtfs_calendar_dates') }}

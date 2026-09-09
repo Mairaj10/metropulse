@@ -43,4 +43,25 @@ sources:
       - name: gtfs_calendar_dates
         identifier: GTFS_CALENDAR_DATES
         description: "Raw GTFS service-date exceptions that add or remove service on specific dates."
-        
+
+
+  - name: raw_supplemented
+    description: "Experimental MTA supplemented static GTFS schedule used to evaluate planned service changes."
+    database: METROPULSE
+    schema: RAW_SUPPLEMENTED
+
+    tables:
+      - name: gtfs_trips
+        identifier: GTFS_TRIPS
+        description: "Supplemented GTFS scheduled trip records."
+
+      - name: gtfs_stop_times
+        identifier: GTFS_STOP_TIMES
+        description: "Supplemented GTFS scheduled stop times."
+
+      - name: gtfs_calendar
+        identifier: GTFS_CALENDAR
+        description: "Supplemented GTFS normal service calendar."
+
+      - name: gtfs_calendar_dates
+        identifier: GTFS_CALENDAR_DATES

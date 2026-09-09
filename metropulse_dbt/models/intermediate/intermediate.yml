@@ -3,7 +3,7 @@ version: 2
 models:
 
   - name: int_active_services_by_date
-    description: "Identifies which GTFS services are active for each realtime service date."
+    description: "Identifies which GTFS services are active for each realtime service date after applying normal calendar rules and date-specific additions/removals."
 
     data_tests:
       - unique_grain:
@@ -27,22 +27,6 @@ models:
         description: "GTFS service that is active on the service date."
         data_tests:
           - not_null
-
-      - name: runs_on_day
-        description: "Normal calendar rule for whether the service runs on that weekday."
-        data_tests:
-          - not_null
-
-      - name: exception_type
-        description: "Special calendar override: 1 adds service and 2 removes service. Null means no exception."
-
-      - name: is_active_service
-        description: "Final active-service flag after applying normal calendar rules and exceptions."
-        data_tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: [1]
 
   - name: int_realtime_trips
     description: "Collapses realtime stop-level updates into one row per realtime trip instance."
