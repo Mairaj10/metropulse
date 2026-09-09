@@ -11,5 +11,4 @@ SELECT
     try_to_date(start_date, 'YYYYMMDD') AS start_date,
     try_to_date(end_date, 'YYYYMMDD') AS end_date,
     try_cast(loaded_at_utc as timestamp_tz) as loaded_at_utc
-
-FROM {{ source('raw', 'gtfs_calendar') }}
+FROM {{ source('raw_supplemented', 'gtfs_calendar') }}

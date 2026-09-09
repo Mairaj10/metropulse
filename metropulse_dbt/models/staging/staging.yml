@@ -73,11 +73,11 @@ models:
 
 
   - name: stg_gtfs_trips
-    description: "Provides information about the trips in the GTFS data for MTA."
+    description: "Provides scheduled trip records from the MTA supplemented GTFS schedule."
 
     columns:
       - name: trip_id
-        description: "Unique identifier for each trip."
+        description: "Unique identifier for each scheduled trip."
         data_tests:
           - not_null
           - unique
@@ -92,7 +92,7 @@ models:
                 field: route_id
 
       - name: service_id
-        description: "GTFS service calendar associated with the trip."
+        description: "GTFS service identifier associated with the scheduled trip."
 
       - name: trip_headsign
         description: "Destination or direction text for the scheduled trip."
@@ -109,13 +109,13 @@ models:
         description: "GTFS shape associated with the trip when available."
 
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database."
+        description: "Timestamp when the supplemented schedule record was loaded into the database."
         data_tests:
           - not_null
 
 
   - name: stg_gtfs_stop_times
-    description: "Provides information about the stop times in the GTFS data for MTA."
+    description: "Provides scheduled stop times from the MTA supplemented GTFS schedule."
 
     data_tests:
       - unique_grain:
@@ -126,7 +126,7 @@ models:
 
     columns:
       - name: trip_id
-        description: "Identifies which trip this stop occurrence belongs to."
+        description: "Identifies which supplemented scheduled trip this stop occurrence belongs to."
         data_tests:
           - not_null
           - relationships:
@@ -159,7 +159,7 @@ models:
           - not_null
 
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database."
+        description: "Timestamp when the supplemented schedule record was loaded into the database."
         data_tests:
           - not_null
 
@@ -238,11 +238,11 @@ models:
 
 
   - name: stg_gtfs_calendar
-    description: "Provides the normal GTFS service calendar used by MTA."
+    description: "Provides the normal weekly service rules from the MTA supplemented GTFS schedule."
 
     columns:
       - name: service_id
-        description: "Unique identifier for each GTFS service."
+        description: "Unique identifier for each recurring GTFS service."
         data_tests:
           - not_null
           - unique
@@ -304,23 +304,23 @@ models:
                 values: [0, 1]
 
       - name: start_date
-        description: "Date when this service schedule starts."
+        description: "Date when this recurring service schedule starts."
         data_tests:
           - not_null
 
       - name: end_date
-        description: "Date when this service schedule ends."
+        description: "Date when this recurring service schedule ends."
         data_tests:
           - not_null
 
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database."
+        description: "Timestamp when the supplemented schedule record was loaded into the database."
         data_tests:
           - not_null
 
 
   - name: stg_gtfs_calendar_dates
-    description: "Provides GTFS service exceptions that add or remove service on specific dates."
+    description: "Provides date-specific service additions and removals from the MTA supplemented GTFS schedule."
 
     data_tests:
       - unique_grain:
@@ -331,16 +331,12 @@ models:
 
     columns:
       - name: service_id
-        description: "GTFS service affected by the exception."
+        description: "GTFS service affected by the date-specific exception. The service may be introduced only through calendar_dates and therefore does not have to exist in the normal weekly calendar."
         data_tests:
           - not_null
-          - relationships:
-              arguments:
-                to: ref('stg_gtfs_calendar')
-                field: service_id
 
       - name: date
-        description: "Date when the service exception applies."
+        description: "Specific date when the service exception applies."
         data_tests:
           - not_null
 
@@ -361,7 +357,7 @@ models:
                 values: ['add_service', 'remove_service']
 
       - name: loaded_at_utc
-        description: "Timestamp when the record was loaded into the database."
+        description: "Timestamp when the supplemented schedule record was loaded into the database."
         data_tests:
           - not_null
         
