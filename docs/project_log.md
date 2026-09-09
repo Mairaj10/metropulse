@@ -423,6 +423,7 @@ contracts protect the shape of the model.
 
 I’m keeping contracts on the dashboard-facing marts for now instead of putting them everywhere just because I can.
 
+
 ## BI exposed the missing history
 
 I finally connected the analytics marts to Looker Studio and expected the delay charts to start looking like the final dashboard.
@@ -439,7 +440,8 @@ I paused the BI work instead of trying to make the charts look better with incom
 
 The project needed continuous data collection first.
 
-## 📝 Moved realtime ingestion off my laptop and onto AWS
+
+##  Moved realtime ingestion off my laptop and onto AWS
 
 The sparse-history problem pushed the project somewhere I had not originally planned to take it.
 
@@ -470,6 +472,7 @@ No manual Materialize button and no laptop doing the work.
 
 This was the point where MetroPulse stopped being a pipeline that only worked while I was developing it locally and started behaving like an actual continuously running data system.
 
+
 ## First overnight check of the cloud pipeline
 
 Left MetroPulse running overnight for the first time and checked what actually happened without my laptop involved.
@@ -487,6 +490,7 @@ I then checked Snowflake warehouse usage and found another issue: the warehouse 
 I changed AUTO_SUSPEND from 300 seconds to 60 seconds so Snowflake can sleep between ingestion runs instead of burning credits while idle.
 
 This was my first real operations check of MetroPulse: not just whether the pipeline could run, but whether it could recover and whether it was using cloud resources sensibly.
+
 
 ## Added CI for pull requests
 
@@ -510,6 +514,7 @@ I spent some time looking at Slim CI and `defer`, but right now the full dbt bui
 
 I’m leaving that alone unless the project actually gets slow or expensive enough to need it.
 
+
 ## Added a Snowflake credit guardrail
 
 Checked the warehouse metering again after changing AUTO_SUSPEND to 60 seconds.
@@ -521,3 +526,91 @@ Since MetroPulse is now running continuously, I also added a daily Resource Moni
 The quota is 20 credits per day, with warnings at 75% and 90%, and the warehouse suspends at 100%.
 
 I mainly wanted this as a guardrail rather than finding out about runaway warehouse usage after the credits were already gone.
+
+
+## Fixed the overnight schedule mapping gap
+
+Once the cloud pipeline had collected enough continuous history, I went back to the BI issue that originally made me move ingestion onto AWS.
+
+The data was much denser now, but I noticed something weird with the A train.
+
+The realtime RAW table clearly had overnight predictions, but a lot of them were disappearing further downstream.
+
+I traced it back to the trip-matching step.
+
+For September 7, there were 240 realtime A trips, but only 55 were matching to the static schedule.
+
+I checked the regular MTA GTFS files and a lot of the realtime trip patterns just were not there.
+
+Then I tested the MTA supplemented GTFS schedule, which includes near-term schedule changes.
+
+Using that instead, the same September 7 A data went from:
+
+55 / 240 matched
+
+to:
+
+227 / 240 matched
+
+I also checked for fan-out again and every matched realtime trip still mapped to only one scheduled trip.
+
+So the better match rate was not coming from making the join looser and creating duplicates.
+
+I switched the schedule-related staging models — trips, stop times, calendar, and calendar dates — to use the supplemented GTFS source.
+
+While doing that I found another GTFS detail I had missed before.
+
+Some services can exist only in calendar_dates.txt and not in the normal recurring calendar.txt.
+
+My old active-service logic started from calendar.txt, so those exception-only services could never make it into the model.
+
+I changed the logic to work more like:
+
+normal active services
+
+date-specific additions
+date-specific removals
+
+After the change passed CI, I merged it into main, updated the EC2 deployment, and let Dagster run the new dbt code.
+
+The corrected intermediate model immediately showed the expected 227 matched A trips for September 7.
+
+Then I hit another issue because fct_stop_predictions is incremental.
+
+The upstream view was using the new logic for old dates, but the fact table was still holding historical rows that had been built with the old logic.
+
+For September 7 A predictions:
+
+int_stop_prediction_comparisons = 197,122 rows
+
+fct_stop_predictions = 47,504 rows
+
+So the code fix worked, but the old fact history had not been repaired.
+
+I paused the Dagster scheduler and did a one-time full refresh of fct_stop_predictions.
+
+After the rebuild:
+
+int_stop_prediction_comparisons = 197,122 rows
+
+fct_stop_predictions = 197,122 rows
+
+The counts matched exactly and the fact tests passed.
+
+Big thing I learned here: fixing upstream logic does not automatically fix old rows already stored in an incremental table.
+
+Sometimes the code change and the historical backfill are two separate jobs.
+
+##  Tried human-readable stop labels in the dashboard
+
+I wanted the Looker charts to show station names instead of GTFS stop IDs because IDs like `A54S` are not very friendly to read.
+
+My first idea was to add `stop_name` from `dim_stops` to the two stop-level analytics marts. I kept the original aggregation grain first and joined the descriptive stop information afterward so the join would not change the mart grain.
+
+Before using `stop_name` as the chart dimension, I checked whether it was unique. It was not — names like `86 St` and `Canal St` can belong to multiple GTFS stop IDs. Using only the name would therefore combine different stop records in Looker.
+
+I tried a unique dashboard label using the stop name plus stop ID, such as `Beach 60 St [H07S]`. This preserved uniqueness, but the labels were too long for the horizontal bar charts and made the dashboard harder to read.
+
+I decided to keep `STOP_ID` as the chart dimension and removed the extra mart changes instead of keeping unused complexity.
+
+Main lesson: a more human-readable dimension is not automatically a better dashboard dimension. I still need to protect the model grain and also consider how the field will actually render in the BI tool.
